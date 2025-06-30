@@ -1,10 +1,8 @@
 import express, { Response } from 'express';
 import createError from 'http-errors';
 import path from 'path';
-import dotenv from 'dotenv';
-// import cors from 'cors';
+import config from './config/env';
 
-dotenv.config({ path: path.join(__dirname, '../.env') });
 import { handleError } from './helpers/error';
 import httpLogger from './utils/httpLogger';
 
@@ -15,8 +13,8 @@ import inspectionsRouter from './routes/inspection';
 
 const app = express();
 
+//TODO: add cors as middle for cross site verification,  between backend and frontend
 // Middleware
-// app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use(httpLogger);
@@ -42,7 +40,7 @@ const errorHandler: express.ErrorRequestHandler = (err, _req, res) => {
 };
 app.use(errorHandler);
 
-const PORT = parseInt(process.env.PORT || '5000');
+const PORT = config.port;
 
 // Initialize database and start server
 async function startServer() {

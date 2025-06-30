@@ -1,0 +1,26 @@
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres
+    restart: always  
+    container_name: inspection-postgres
+    environment:
+      POSTGRES_DB: inspection_db
+      POSTGRES_USER: inspection_user
+      POSTGRES_PASSWORD: mysecretpassword
+    ports:
+      - "5432:5432"
+
+
+ # Node.js Application
+  app:
+    build: .
+    container_name: inspection-app
+    environment:
+      NODE_ENV: dev
+      PORT: 8000
+      DATABASE_URL: postgresql://inspection_user:mysecretpassword@db:5432/inspection_db
+    ports:
+      - "8000:8000"
+

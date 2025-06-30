@@ -1,18 +1,16 @@
 import { Pool } from 'pg';
-import dotenv from 'dotenv';
-
-dotenv.config({ path: '../.env' });
+import config from './env';
 
 let pool: Pool;
 
 export async function initializeDatabase(): Promise<void> {
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = config.dbUrl;
+  console.log('db url:', databaseUrl);
 
   if (databaseUrl) {
     try {
       pool = new Pool({
         connectionString: databaseUrl,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       });
 
       await pool.query('SELECT NOW()');
