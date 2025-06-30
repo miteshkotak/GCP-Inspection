@@ -5,7 +5,6 @@ let pool: Pool;
 
 export async function initializeDatabase(): Promise<void> {
   const databaseUrl = config.dbUrl;
-  console.log('db url:', databaseUrl);
 
   if (databaseUrl) {
     try {

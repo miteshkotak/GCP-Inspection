@@ -1,14 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { dbHelpers } from '../config/database';
 import { validateObject } from '../middleware/validation';
-import { Property, CreatePropertyRequest } from '../types';
+import { getAllObjects, getObjectById, createObject, updateObjectById, deleteObjectById } from '../services/objectService';
 
 const router = Router();
 
 // Get all objects with inspection count
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const objects = await dbHelpers.find<Property>('objects');
+    const objects = await getAllObjects();
     res.json(objects);
   } catch (error) {
     console.error('Error fetching objects:', error);
@@ -19,22 +18,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 // Get specific object
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const objectId = req.params.id;
-
-    if (!objectId) {
-      res.status(400).json({ error: 'Invalid object ID' });
-      return;
-    }
-
-    const object = await dbHelpers.findOne<Property>('objects', {
-      _id: dbHelpers.toObjectId(objectId),
-    });
-
-    if (!object) {
-      res.status(404).json({ error: 'Object not found' });
-      return;
-    }
-
+    const object = await getObjectById(req.params.id);
     res.json(object);
   } catch (error) {
     console.error('Error fetching object:', error);
@@ -42,28 +26,10 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-//Create new object
+// Create new object
 router.post('/', validateObject, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, street, number, city, postal_code }: CreatePropertyRequest = req.body;
-
-    const result = await dbHelpers.insertOne('objects', {
-      name,
-      street,
-      number,
-      city,
-      postal_code,
-    });
-
-    if (!result.acknowledged) {
-      res.status(500).json({ error: 'Failed to create object' });
-      return;
-    }
-
-    const createdObject = await dbHelpers.findOne<Property>('objects', {
-      id: result.id,
-    });
-
+    const createdObject = await createObject(req.body);
     res.status(201).json(createdObject);
   } catch (error) {
     console.error('Error creating object:', error);
@@ -71,32 +37,10 @@ router.post('/', validateObject, async (req: Request, res: Response): Promise<vo
   }
 });
 
-//Update object
+// Update object
 router.put('/:id', validateObject, async (req: Request, res: Response): Promise<void> => {
   try {
-    const objectId = req.params.id;
-    const { name, street, number, city, postal_code }: CreatePropertyRequest = req.body;
-
-    if (!objectId) {
-      res.status(400).json({ error: 'Invalid object ID' });
-      return;
-    }
-
-    const existingObject = await dbHelpers.findOne<Property>('objects', {
-      id: objectId,
-    });
-
-    if (!existingObject) {
-      res.status(404).json({ error: 'Object not found' });
-      return;
-    }
-
-    await dbHelpers.updateOne('objects', { id: objectId }, { name, street, number, city, postal_code });
-
-    const updatedObject = await dbHelpers.findOne<Property>('objects', {
-      id: objectId,
-    });
-
+    const updatedObject = await updateObjectById(req.params.id, req.body);
     res.json(updatedObject);
   } catch (error) {
     console.error('Error updating object:', error);
@@ -104,37 +48,10 @@ router.put('/:id', validateObject, async (req: Request, res: Response): Promise<
   }
 });
 
-//Delete object
+// Delete object
 router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
-    const objectId = req.params.id;
-
-    if (!objectId) {
-      res.status(400).json({ error: 'Invalid object ID' });
-      return;
-    }
-
-    const object = await dbHelpers.findOne<Property>('objects', {
-      id: objectId,
-    });
-
-    if (!object) {
-      res.status(404).json({ error: 'Object not found' });
-      return;
-    }
-
-    // Check if object is used in any inspections
-    const inspections = await dbHelpers.find('inspections', { object_id: objectId });
-
-    if (inspections.length > 0) {
-      res.status(400).json({
-        error: 'Cannot delete object that is used in inspections',
-      });
-      return;
-    }
-
-    await dbHelpers.deleteOne('objects', { id: objectId });
-
+    await deleteObjectById(req.params.id);
     res.json({ message: 'Object deleted successfully' });
   } catch (error) {
     console.error('Error deleting object:', error);
