@@ -19,7 +19,6 @@ export async function initializeDatabase(): Promise<void> {
       console.log('Connected to PostgreSQL database');
 
       await createTables();
-      // await insertSampleData();
       return;
     } catch (error) {
       console.error('PostgreSQL connection failed:', error);
