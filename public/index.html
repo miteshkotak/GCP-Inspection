@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspection Management App</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-clipboard-check me-2"></i>
+                Inspection App
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" onclick="showSection('templates')">Templates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('objects')">Properties</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="showSection('inspections')">Inspections</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Loading indicator -->
+        <div id="loading" class="text-center d-none">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <!-- Error alert -->
+        <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+            <strong>Error:</strong> <span id="errorMessage"></span>
+        </div>
+
+        <!-- Success alert -->
+        <div id="successAlert" class="alert alert-success d-none" role="alert">
+            <strong>Success:</strong> <span id="successMessage"></span>
+        </div>
+
+        <!-- Templates Section -->
+        <div id="templatesSection" class="section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-file-alt me-2"></i>Templates</h2>
+                <button class="btn btn-primary" onclick="showCreateTemplateForm()">
+                    <i class="fas fa-plus me-1"></i>Create Template
+                </button>
+            </div>
+
+            <div id="createTemplateForm" class="card mb-4 d-none">
+                <div class="card-header">
+                    <h5>Create New Template</h5>
+                </div>
+                <div class="card-body">
+                    <form id="templateForm">
+                        <div class="mb-3">
+                            <label for="templateName" class="form-label">Template Name</label>
+                            <input type="text" class="form-control" id="templateName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="templateDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="templateDescription" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <label class="form-label">Questions</label>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="addQuestion()">
+                                    <i class="fas fa-plus me-1"></i>Add Question
+                                </button>
+                            </div>
+                            <div id="questionsContainer"></div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Create Template</button>
+                            <button type="button" class="btn btn-secondary" onclick="hideCreateTemplateForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="templatesList"></div>
+        </div>
+
+        <!-- Objects Section -->
+        <div id="objectsSection" class="section d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-building me-2"></i>Properties</h2>
+                <button class="btn btn-primary" onclick="showCreateObjectForm()">
+                    <i class="fas fa-plus me-1"></i>Add Property
+                </button>
+            </div>
+
+            <div id="createObjectForm" class="card mb-4 d-none">
+                <div class="card-header">
+                    <h5>Add New Property</h5>
+                </div>
+                <div class="card-body">
+                    <form id="objectForm">
+                        <div class="mb-3">
+                            <label for="objectName" class="form-label">Property Name</label>
+                            <input type="text" class="form-control" id="objectName" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <label for="objectStreet" class="form-label">Street</label>
+                                <input type="text" class="form-control" id="objectStreet" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="objectNumber" class="form-label">Number</label>
+                                <input type="text" class="form-control" id="objectNumber" required>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-8">
+                                <label for="objectCity" class="form-label">City</label>
+                                <input type="text" class="form-control" id="objectCity" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="objectPostalCode" class="form-label">Postal Code</label>
+                                <input type="text" class="form-control" id="objectPostalCode" required>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="submit" class="btn btn-primary">Add Property</button>
+                            <button type="button" class="btn btn-secondary" onclick="hideCreateObjectForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="objectsList"></div>
+        </div>
+
+        <!-- Inspections Section -->
+        <div id="inspectionsSection" class="section d-none">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-clipboard-list me-2"></i>Inspections</h2>
+                <button class="btn btn-primary" onclick="showCreateInspectionForm()">
+                    <i class="fas fa-plus me-1"></i>Create Inspection
+                </button>
+            </div>
+
+            <div id="createInspectionForm" class="card mb-4 d-none">
+                <div class="card-header">
+                    <h5>Create New Inspection</h5>
+                </div>
+                <div class="card-body">
+                    <form id="inspectionForm">
+                        <div class="mb-3">
+                            <label for="inspectionObject" class="form-label">Property</label>
+                            <select class="form-control" id="inspectionObject" required>
+                                <option value="">Select a property...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="inspectionTemplate" class="form-label">Template</label>
+                            <select class="form-control" id="inspectionTemplate" required>
+                                <option value="">Select a template...</option>
+                            </select>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Create Inspection</button>
+                            <button type="button" class="btn btn-secondary" onclick="hideCreateInspectionForm()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="inspectionsList"></div>
+        </div>
+
+        <!-- Inspection Details Modal -->
+        <div class="modal fade" id="inspectionModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Inspection Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="inspectionModalBody">
+                        <!-- Dynamic content -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="saveInspectionBtn" onclick="saveInspection()">Save Answers</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
