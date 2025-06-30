@@ -19,7 +19,7 @@ export async function initializeDatabase(): Promise<void> {
       console.log('Connected to PostgreSQL database');
 
       await createTables();
-      await insertSampleData();
+      // await insertSampleData();
       return;
     } catch (error) {
       console.error('PostgreSQL connection failed:', error);
@@ -93,50 +93,50 @@ async function createTables(): Promise<void> {
   }
 }
 
-async function insertSampleData(): Promise<void> {
-  const client = await pool.connect();
-  try {
-    // Check if sample data already exists
-    const result = await client.query('SELECT COUNT(*) FROM templates');
-    if (parseInt(result.rows[0].count) > 0) {
-      return;
-    }
+// async function insertSampleData(): Promise<void> {
+//   const client = await pool.connect();
+//   try {
+//     // Check if sample data already exists
+//     const result = await client.query('SELECT COUNT(*) FROM templates');
+//     if (parseInt(result.rows[0].count) > 0) {
+//       return;
+//     }
 
-    // Insert sample template
-    const templateResult = await client.query(`
-            INSERT INTO templates (name, description) 
-            VALUES ('Basic Property Inspection', 'Standard inspection template for residential properties')
-            RETURNING id
-        `);
-    const templateId = templateResult.rows[0].id;
+//     // Insert sample template
+//     const templateResult = await client.query(`
+//             INSERT INTO templates (name, description) 
+//             VALUES ('Basic Property Inspection', 'Standard inspection template for residential properties')
+//             RETURNING id
+//         `);
+//     const templateId = templateResult.rows[0].id;
 
-    // Insert sample questions
-    await client.query(
-      `
-            INSERT INTO template_questions (template_id, question_text, question_type, required, order_index)
-            VALUES 
-                (123, 'Property condition', 'single_choice', true, 1),
-                (456, 'Overall rating', 'numeric', true, 2),
-                (789, 'Inspection date', 'date', true, 3),
-        `,
-      [templateId, templateId, templateId, templateId],
-    );
+//     // Insert sample questions
+//     await client.query(
+//       `
+//             INSERT INTO template_questions (template_id, question_text, question_type, required, order_index)
+//             VALUES 
+//                 (123, 'Property condition', 'single_choice', true, 1),
+//                 (456, 'Overall rating', 'numeric', true, 2),
+//                 (789, 'Inspection date', 'date', true, 3),
+//         `,
+//       [templateId, templateId, templateId, templateId],
+//     );
 
-    // Update the single choice question with options
-    await client.query(
-      `
-            UPDATE template_questions 
-            SET options = ARRAY['Excellent', 'Good', 'Fair', 'Poor']
-            WHERE template_id = $1 AND question_text = 'Property condition'
-        `,
-      [templateId],
-    );
+//     // Update the single choice question with options
+//     await client.query(
+//       `
+//             UPDATE template_questions 
+//             SET options = ARRAY['Excellent', 'Good', 'Fair', 'Poor']
+//             WHERE template_id = $1 AND question_text = 'Property condition'
+//         `,
+//       [templateId],
+//     );
 
-    console.log('Sample data inserted successfully');
-  } finally {
-    client.release();
-  }
-}
+//     console.log('Sample data inserted successfully');
+//   } finally {
+//     client.release();
+//   }
+// }
 
 export interface DatabaseResult {
   id?: string;
