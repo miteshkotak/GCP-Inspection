@@ -1,58 +1,61 @@
+import { response } from 'express';
 import { dbHelpers } from '../config/database';
-import { Template, CreateTemplateRequest } from '../types';
+import { Template, TemplateQuestion, TemplateWithQuestions, CreateTemplateRequest, DatabaseResult } from '../types';
 
-export const getAllTemplates = async (): Promise<Template[]> => {
-  return await dbHelpers.find<Template>('templates');
-};
+export class TemplateService {
+  async getAllTemplates(): Promise<Template[]> {
+    return await dbHelpers.find<Template>('templates');
+  }
 
-export const getTemplateById = async (templateId: string): Promise<Template | null> => {
-  const template = await dbHelpers.findOne<Template>('templates', {
-    _id: dbHelpers.toObjectId(templateId),
-  });
+  async getTemplateById(id: string): Promise<TemplateWithQuestions | null> {
+    const template = await dbHelpers.findOne<Template>('templates', { id: dbHelpers.toObjectId(id) });
 
-  // Add logic for fetching questions if necessary
+    if (!template) {
+      response.json({ error: 'Template not found' });
+      return null;
+    }
 
-  return template;
-};
-
-export const createTemplate = async (data: CreateTemplateRequest): Promise<Template> => {
-  const { name, description, questions } = data;
-  const templateResult = await dbHelpers.insertOne('templates', {
-    name,
-    description: description || null,
-  });
-
-  const templateId = templateResult.id;
-
-  for (let i = 0; i < questions.length; i++) {
-    const question = questions[i];
-    await dbHelpers.insertOne('template_questions', {
-      template_id: templateId,
-      question_text: question.question_text,
-      question_type: question.question_type,
-      options: question.options || null,
-      required: question.required,
-      order_index: i,
+    const questions = await dbHelpers.find<TemplateQuestion>('template_questions', {
+      template_id: id,
     });
+
+    return {
+      ...template,
+      questions: questions,
+    };
   }
 
-  return await dbHelpers.findOne<Template>('templates', { id: templateId })!;
-};
+  async createTemplate(templateData: CreateTemplateRequest): Promise<TemplateWithQuestions> {
+    const { name, description, questions } = templateData;
 
-export const deleteTemplateById = async (templateId: string): Promise<void> => {
-  const template = await dbHelpers.findOne<Template>('templates', {
-    _id: dbHelpers.toObjectId(templateId),
-  });
+    // Create template
+    const templateResult = await dbHelpers.insertOne('templates', {
+      name,
+      description: description || null,
+    });
 
-  if (!template) {
-    throw new Error('Template not found');
+    const templateId = templateResult.id;
+
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      await dbHelpers.insertOne('template_questions', {
+        template_id: templateId,
+        question_text: question.question_text,
+        question_type: question.question_type,
+        options: question.options || null,
+        required: question.required,
+        order_index: i,
+      });
+    }
+    const createdTemplate = await dbHelpers.findOne<Template>('templates', { id: templateId });
+    const createdQuestions = await dbHelpers.find<TemplateQuestion>('template_questions', { template_id: templateId });
+
+    return { ...createdTemplate, questions: createdQuestions };
   }
-
-  const inspections = await dbHelpers.find('inspections', { template_id: templateId });
-  if (inspections.length > 0) {
-    throw new Error('Cannot delete template that is used in inspections');
+  async deleteTemplate(id: string): Promise<boolean> {
+    const result = await dbHelpers.deleteOne('templates', { id });
+    return result.acknowledged;
   }
+}
 
-  await dbHelpers.deleteMany('template_questions', { template_id: templateId });
-  await dbHelpers.deleteOne('templates', { _id: dbHelpers.toObjectId(templateId) });
-};
+export const templateService = new TemplateService();

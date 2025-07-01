@@ -134,7 +134,10 @@ function displayTemplates(templates) {
 
 async function viewTemplate(templateId) {
     try {
-        const template = await apiCall(`/api/templates/${templateId}`);
+        const template = await apiCall('/api/templates/get', {
+            method: 'POST',
+            body: JSON.stringify({ id: templateId.toString() })
+        });
         
         const questionsHtml = template.questions.map(q => {
             let optionsHtml = '';
@@ -195,7 +198,10 @@ async function deleteTemplate(templateId) {
     }
     
     try {
-        await apiCall(`/api/templates/${templateId}`, { method: 'DELETE' });
+        await apiCall('/api/templates', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: templateId.toString() })
+        });
         showSuccess('Template deleted successfully');
         loadTemplates();
     } catch (error) {
@@ -358,7 +364,10 @@ async function deleteObject(objectId) {
     }
     
     try {
-        await apiCall(`/api/objects/${objectId}`, { method: 'DELETE' });
+        await apiCall('/api/objects', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: objectId.toString() })
+        });
         showSuccess('Property deleted successfully');
         loadObjects();
     } catch (error) {
@@ -430,7 +439,10 @@ function displayInspections(inspections) {
 
 async function openInspection(inspectionId) {
     try {
-        const inspection = await apiCall(`/api/inspections/${inspectionId}`);
+        const inspection = await apiCall('/api/inspections/get', {
+            method: 'POST',
+            body: JSON.stringify({ id: inspectionId.toString() })
+        });
         currentInspectionId = inspectionId;
         
         const questionsHtml = inspection.questions.map(q => {
@@ -536,6 +548,7 @@ async function saveInspection() {
         });
         
         const requestData = {
+            id: currentInspectionId.toString(),
             answers: answers,
             status: 'completed'
         };
@@ -543,8 +556,8 @@ async function saveInspection() {
         console.log('Saving inspection with ID:', currentInspectionId);
         console.log('Request data:', requestData);
         
-        await apiCall(`/api/inspections/${currentInspectionId}`, {
-            method: 'PUT',
+        await apiCall('/api/inspections/update', {
+            method: 'POST',
             body: JSON.stringify(requestData)
         });
         
@@ -564,7 +577,10 @@ async function deleteInspection(inspectionId) {
     }
     
     try {
-        await apiCall(`/api/inspections/${inspectionId}`, { method: 'DELETE' });
+        await apiCall('/api/inspections', {
+            method: 'DELETE',
+            body: JSON.stringify({ id: inspectionId.toString() })
+        });
         showSuccess('Inspection deleted successfully');
         loadInspections();
     } catch (error) {

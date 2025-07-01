@@ -99,3 +99,15 @@ export interface ValidationResult {
   valid: boolean;
   errors: string[];
 }
+
+export interface GetByIdRequest {
+  id: string;
+}
+
+export interface DeleteByIdRequest {
+  id: string;
+}
+
+export interface UpdatePropertyRequest extends CreatePropertyRequest {
+  id: string;
+}

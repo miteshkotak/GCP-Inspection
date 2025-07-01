@@ -153,7 +153,7 @@ export const dbHelpers = {
     }
   },
 
-  async findOne<T>(collectionName: string, filter: any): Promise<T | undefined> {
+  async findOne<T = any>(collectionName: string, filter: any): Promise<T | undefined> {
     const client = await pool.connect();
     try {
       let query: string;

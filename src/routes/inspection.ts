@@ -1,13 +1,14 @@
-import { Router, Request, Response, RequestHandler } from 'express';
+import { Router, Request, Response } from 'express';
+import { inspectionService } from '../services/inspectionService';
 import { validateInspection, validateInspectionAnswers } from '../middleware/validation';
-import { getAllInspections, getInspectionById, createInspection, updateInspectionById, deleteInspectionById } from '../services/inspectionService';
+import { CreateInspectionRequest, GetByIdRequest, DeleteByIdRequest } from '../types';
 
 const router = Router();
 
 // Get all inspections
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const inspections = await getAllInspections();
+    const inspections = await inspectionService.getAllInspections();
     res.json(inspections);
   } catch (error) {
     console.error('Error fetching inspections:', error);
@@ -15,10 +16,23 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// Get specific inspection
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+// Get specific inspection with answers (ID in body)
+router.post('/get', async (req: Request, res: Response): Promise<void> => {
   try {
-    const inspection = await getInspectionById(req.params.id);
+    const { id }: GetByIdRequest = req.body;
+
+    if (!id) {
+      res.status(400).json({ error: 'Inspection ID is required in request body' });
+      return;
+    }
+
+    const inspection = await inspectionService.getInspectionById(id);
+
+    if (!inspection) {
+      res.status(404).json({ error: 'Inspection not found' });
+      return;
+    }
+
     res.json(inspection);
   } catch (error) {
     console.error('Error fetching inspection:', error);
@@ -26,32 +40,59 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// Create new inspection
+//Create new inspection
 router.post('/', validateInspection, async (req: Request, res: Response): Promise<void> => {
   try {
-    const createdInspection = await createInspection(req.body);
-    res.status(201).json(createdInspection);
+    const inspectionData: CreateInspectionRequest = req.body;
+    const result = await inspectionService.createInspection(inspectionData);
+    res.status(201).json(result);
   } catch (error) {
     console.error('Error creating inspection:', error);
     res.status(500).json({ error: 'Failed to create inspection' });
   }
 });
 
-// Update inspection
-router.put('/:id', validateInspectionAnswers, async (req: Request, res: Response): Promise<void> => {
+// Update inspection answers/status (ID in body)
+router.post('/update', validateInspectionAnswers, async (req: Request, res: Response): Promise<void> => {
   try {
-    const updatedInspection = await updateInspectionById(req.params.id, req.body);
-    res.json(updatedInspection);
+    const updateData = req.body;
+
+    if (!updateData.id) {
+      res.status(400).json({ error: 'Inspection ID is required in request body' });
+      return;
+    }
+
+    const result = await inspectionService.updateInspection(updateData.id, updateData);
+
+    if (!result) {
+      res.status(404).json({ error: 'Inspection not found' });
+      return;
+    }
+
+    res.json(result);
   } catch (error) {
     console.error('Error updating inspection:', error);
     res.status(500).json({ error: 'Failed to update inspection' });
   }
 });
 
-// Delete inspection
-router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+// DELETE /api/inspections - Delete inspection (ID in body)
+router.delete('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    await deleteInspectionById(req.params.id);
+    const { id }: DeleteByIdRequest = req.body;
+
+    if (!id) {
+      res.status(400).json({ error: 'Inspection ID is required in request body' });
+      return;
+    }
+
+    const success = await inspectionService.deleteInspection(id);
+
+    if (!success) {
+      res.status(404).json({ error: 'Inspection not found' });
+      return;
+    }
+
     res.json({ message: 'Inspection deleted successfully' });
   } catch (error) {
     console.error('Error deleting inspection:', error);

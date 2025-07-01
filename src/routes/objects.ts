@@ -1,13 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { validateObject } from '../middleware/validation';
-import { getAllObjects, getObjectById, createObject, updateObjectById, deleteObjectById } from '../services/objectService';
+import { objectService } from '../services/objectService';
+import { CreatePropertyRequest, GetByIdRequest, DeleteByIdRequest, UpdatePropertyRequest } from '../types';
 
 const router = Router();
 
 // Get all objects with inspection count
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const objects = await getAllObjects();
+    const objects = await objectService.getAllObjects();
     res.json(objects);
   } catch (error) {
     console.error('Error fetching objects:', error);
@@ -16,9 +17,22 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 // Get specific object
-router.get('/:id', async (req: Request, res: Response): Promise<void> => {
+router.post('/get', async (req: Request, res: Response): Promise<void> => {
   try {
-    const object = await getObjectById(req.params.id);
+    const { id }: GetByIdRequest = req.body;
+
+    if (!id) {
+      res.status(400).json({ error: 'Object ID is required in request body' });
+      return;
+    }
+
+    const object = await objectService.getObjectById(id);
+
+    if (!object) {
+      res.status(404).json({ error: 'Object not found' });
+      return;
+    }
+
     res.json(object);
   } catch (error) {
     console.error('Error fetching object:', error);
@@ -29,29 +43,57 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
 // Create new object
 router.post('/', validateObject, async (req: Request, res: Response): Promise<void> => {
   try {
-    const createdObject = await createObject(req.body);
-    res.status(201).json(createdObject);
+    const objectData: CreatePropertyRequest = req.body;
+    const result = await objectService.createObject(objectData);
+    res.status(201).json(result);
   } catch (error) {
     console.error('Error creating object:', error);
     res.status(500).json({ error: 'Failed to create object' });
   }
 });
 
-// Update object
-router.put('/:id', validateObject, async (req: Request, res: Response): Promise<void> => {
+// Update object //TODO: convert into PUT/PATCH request
+router.post('/update', validateObject, async (req: Request, res: Response): Promise<void> => {
   try {
-    const updatedObject = await updateObjectById(req.params.id, req.body);
-    res.json(updatedObject);
+    const { id, name, street, number, city, postal_code }: UpdatePropertyRequest = req.body;
+
+    if (!id) {
+      res.status(400).json({ error: 'Object ID is required in request body' });
+      return;
+    }
+
+    const objectData: CreatePropertyRequest = { name, street, number, city, postal_code };
+    const result = await objectService.updateObject(id, objectData);
+
+    if (!result) {
+      res.status(404).json({ error: 'Object not found' });
+      return;
+    }
+
+    res.json(result);
   } catch (error) {
     console.error('Error updating object:', error);
     res.status(500).json({ error: 'Failed to update object' });
   }
 });
 
-// Delete object
-router.delete('/:id', async (req: Request, res: Response): Promise<void> => {
+// DELETE /api/objects - Delete object (ID in body)
+router.delete('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    await deleteObjectById(req.params.id);
+    const { id }: DeleteByIdRequest = req.body;
+
+    if (!id) {
+      res.status(400).json({ error: 'Object ID is required in request body' });
+      return;
+    }
+
+    const success = await objectService.deleteObject(id);
+
+    if (!success) {
+      res.status(404).json({ error: 'Object not found' });
+      return;
+    }
+
     res.json({ message: 'Object deleted successfully' });
   } catch (error) {
     console.error('Error deleting object:', error);

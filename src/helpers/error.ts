@@ -9,7 +9,7 @@ export class ErrorHandler extends Error {
     this.message = message;
   }
 }
-
+//TODO: check for sentry error handler as mi
 export const handleError = (err: ErrorHandler, res: express.Response): void => {
   const { statusCode, message } = err;
   res.status(statusCode).json({

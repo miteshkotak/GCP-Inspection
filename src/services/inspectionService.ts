@@ -1,99 +1,112 @@
 import { dbHelpers } from '../config/database';
-import { Inspection, InspectionWithAnswers, CreateInspectionRequest, UpdateInspectionRequest } from '../types';
+import { Inspection, InspectionWithAnswers, CreateInspectionRequest, UpdateInspectionRequest, TemplateQuestion, InspectionAnswer } from '../types';
 
-export const getAllInspections = async (): Promise<Inspection[]> => {
-  return await dbHelpers.find<Inspection>('inspections');
-};
-
-export const getInspectionById = async (inspectionId: string): Promise<InspectionWithAnswers | null> => {
-  const inspection = await dbHelpers.findOne<Inspection>('inspections', { id: inspectionId });
-  if (!inspection) {
-    throw new Error('Inspection not found');
+export class InspectionService {
+  async getAllInspections(): Promise<Inspection[]> {
+    return await dbHelpers.find<Inspection>('inspections');
   }
 
-  const questions = await dbHelpers.find('template_questions', { template_id: inspection.template_id });
+  async getInspectionById(id: string): Promise<InspectionWithAnswers | null> {
+    const inspection = await dbHelpers.findOne<Inspection>('inspections', { id });
 
-  const questionsWithAnswers = questions.map((question: any) => ({
-    ...question,
-    // Uncomment to include answers
-    // answer: answers.find((a: any) => a.question_id === question.id)?.answer_value,
-  }));
+    if (!inspection) {
+      return null;
+    }
 
-  return {
-    ...inspection,
-    questions: questionsWithAnswers,
-  };
-};
+    // Get template questions
+    const questions = await dbHelpers.find<TemplateQuestion>('template_questions', {
+      template_id: inspection.template_id,
+    });
 
-export const createInspection = async (data: CreateInspectionRequest): Promise<Inspection> => {
-  const { object_id, template_id } = data;
+    // Get inspection answers
+    const answers = await dbHelpers.find<InspectionAnswer>('inspection_answers', {
+      inspection_id: id,
+    });
 
-  const object = await dbHelpers.findOne('objects', { id: object_id });
-  if (!object) {
-    throw new Error('Object not found');
+    // Combine questions with answers
+    const questionsWithAnswers = questions.map((question) => {
+      const answer = answers.find((a) => a.question_id === question.id);
+      return {
+        ...question,
+        answer: answer?.answer_value,
+      };
+    });
+
+    return {
+      ...inspection,
+      questions: questionsWithAnswers,
+    };
   }
 
-  const template = await dbHelpers.findOne('templates', { id: template_id });
-  if (!template) {
-    throw new Error('Template not found');
+  async createInspection(inspectionData: CreateInspectionRequest): Promise<Inspection> {
+    const { object_id, template_id } = inspectionData;
+
+    const result = await dbHelpers.insertOne('inspections', {
+      object_id,
+      template_id,
+      status: 'draft',
+    });
+
+    return {
+      id: result.id,
+      object_id,
+      template_id,
+      status: 'draft',
+      created_at: new Date(),
+    };
   }
 
-  const result = await dbHelpers.insertOne('inspections', {
-    object_id,
-    template_id,
-    status: 'draft',
-  });
+  async updateInspection(id: string, updateData: UpdateInspectionRequest): Promise<Inspection | null> {
+    const { answers, status } = updateData;
 
-  return await dbHelpers.findOne<Inspection>('inspections', { id: result.id })!;
-};
+    // Update inspection status if provided
+    if (status) {
+      const updateFields: any = { status };
+      if (status === 'completed') {
+        updateFields.completed_at = new Date();
+      }
 
-export const updateInspectionById = async (inspectionId: string, data: UpdateInspectionRequest): Promise<Inspection> => {
-  const { answers, status } = data;
+      await dbHelpers.updateOne('inspections', { id }, updateFields);
+    }
 
-  if (answers && answers.length > 0) {
-    for (const answer of answers) {
-      const existingAnswer = await dbHelpers.findOne('inspection_answers', {
-        inspection_id: inspectionId,
-        question_id: answer.question_id,
-      });
-
-      if (existingAnswer) {
-        await dbHelpers.updateOne(
-          'inspection_answers',
-          { inspection_id: inspectionId, question_id: answer.question_id },
-          { answer_value: answer.answer_value },
-        );
-      } else {
-        await dbHelpers.insertOne('inspection_answers', {
-          inspection_id: inspectionId,
+    // Update answers if provided
+    if (answers && answers.length > 0) {
+      for (const answer of answers) {
+        // Insert or update answer
+        const existingAnswer = await dbHelpers.findOne('inspection_answers', {
+          inspection_id: id,
           question_id: answer.question_id,
-          answer_value: answer.answer_value,
         });
+
+        if (existingAnswer) {
+          await dbHelpers.updateOne(
+            'inspection_answers',
+            {
+              inspection_id: id,
+              question_id: answer.question_id,
+            },
+            {
+              answer_value: answer.answer_value,
+            },
+          );
+        } else {
+          await dbHelpers.insertOne('inspection_answers', {
+            inspection_id: id,
+            question_id: answer.question_id,
+            answer_value: answer.answer_value,
+          });
+        }
       }
     }
+
+    const result = await dbHelpers.findOne<Inspection>('inspections', { id });
+    return result ?? null;
   }
 
-  const updateData: any = {};
-  if (status) {
-    updateData.status = status;
-    if (status === 'completed') {
-      updateData.completed_at = new Date();
-    }
+  async deleteInspection(id: string): Promise<boolean> {
+    const result = await dbHelpers.deleteOne('inspections', { id });
+    return result.acknowledged;
   }
+}
 
-  if (Object.keys(updateData).length > 0) {
-    await dbHelpers.updateOne('inspections', { id: inspectionId }, updateData);
-  }
-
-  return await dbHelpers.findOne<Inspection>('inspections', { id: inspectionId })!;
-};
-
-export const deleteInspectionById = async (inspectionId: string): Promise<void> => {
-  const inspection = await dbHelpers.findOne<Inspection>('inspections', { id: inspectionId });
-  if (!inspection) {
-    throw new Error('Inspection not found');
-  }
-
-  await dbHelpers.deleteMany('inspection_answers', { inspection_id: inspectionId });
-  await dbHelpers.deleteOne('inspections', { id: inspectionId });
-};
+export const inspectionService = new InspectionService();
